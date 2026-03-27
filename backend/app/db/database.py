@@ -8,7 +8,12 @@ from sqlalchemy import String, Float, Integer, DateTime, Text, Boolean, JSON
 from datetime import datetime
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:/// hazina.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///hazina.db")
+
+# Convert PostgreSQL URL to use asyncpg driver for async SQLAlchemy
+# Railway provides postgresql:// which defaults to psycopg2 (sync)
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
 # For SQLite, we need to use an absolute path or properly formatted relative path
 if DATABASE_URL.startswith("sqlite+aiosqlite://./"):
