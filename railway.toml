@@ -1,11 +1,8 @@
-# Railway monorepo configuration
+[build]
+dockerfile = "Dockerfile"
 
-# Frontend service (default, uses root Dockerfile)
-[service]
-name = "frontend"
-
-# Backend service override
-[[services]]
-name = "backend"
-dockerfile = "backend/Dockerfile.backend"
-context = "backend"
+[deploy]
+startCommand = "nginx -g 'daemon off;'"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
