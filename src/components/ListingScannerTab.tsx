@@ -280,7 +280,7 @@ export default function ListingScannerTab() {
       const yearsCount = formData.revenue_years_count === "3+" ? 3 : (parseInt(formData.revenue_years_count) || 3);
       for (let i = 0; i < yearsCount; i++) {
         const yearInfo = revenueYears[i];
-        const value = parseFloat(formData[yearInfo.key]) || 0;
+        const value = parseFloat(String(formData[yearInfo.key] || "0")) || 0;
         if (value > 0) {
           revenueHistory[yearInfo.label] = value;
         }
@@ -637,7 +637,7 @@ export default function ListingScannerTab() {
                 {getRevenueYears().slice(0, formData.revenue_years_count === "3+" ? 3 : parseInt(formData.revenue_years_count)).map((yearInfo, i) => (
                   <div key={i} style={{ flex: "1 1 120px" }}>
                     <input
-                      value={formData[yearInfo.key]}
+                      value={String(formData[yearInfo.key] || "")}
                       onChange={e => setFormData({ ...formData, [yearInfo.key]: e.target.value })}
                       placeholder={`Year ${yearInfo.label}`}
                       style={{
