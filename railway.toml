@@ -1,8 +1,5 @@
+[railway]
+# Disable Railpack, use Docker
 [build]
+builder = "DOCKERFILE"
 dockerfile = "Dockerfile"
-
-[deploy]
-startCommand = "nginx -g 'daemon off;'"
-healthcheckPath = "/"
-healthcheckTimeout = 300
-restartPolicyType = "ON_FAILURE"
