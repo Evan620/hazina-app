@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
-import DocumentUpload, { ManualVerificationInput } from "./DocumentUpload";
+import DocumentUpload from "./DocumentUpload";
 
 // Types
 interface FormData {
@@ -21,6 +21,7 @@ interface FormData {
   board_members: Array<{ name: string; role: string; independent: boolean }>;
   key_parties: string[];
   documents_ready: string[];
+  [key: string]: string | boolean | string[] | Array<{ name: string; role: string; independent: boolean }>;
 }
 
 interface SegmentsType {
@@ -331,9 +332,9 @@ export default function ListingScannerTab() {
       const data = await response.json();
       setResult(data);
       setStep(5); // Go to results step
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "Failed to analyze. Please try again.");
+      setError(err instanceof Error ? err.message : "Failed to analyze. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -414,7 +415,7 @@ export default function ListingScannerTab() {
               {Object.entries(SEGMENTS).map(([key, segment]) => (
                 <div
                   key={key}
-                  onClick={() => setFormData({ ...formData, segment: key })}
+                  onClick={() => setFormData({ ...formData, segment: key as "GEMS" | "AIMS" | "MIMS" })}
                   style={{
                     padding: 16, borderRadius: 12, background: formData.segment === key ? C.accentDim + "30" : C.cardAlt,
                     border: `1px solid ${formData.segment === key ? C.accent : C.border}`,
@@ -1316,7 +1317,7 @@ export default function ListingScannerTab() {
             {/* Requirements Status */}
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 11, color: C.textDim, marginBottom: 6 }}>NSE Requirements ({regulatory.requirements.met}/{regulatory.requirements.total} met)</div>
-              {regulatory.requirements.results.map((req, i) => (
+              {regulatory.requirements.results.map((req: any, i: number) => (
                 <div key={i} style={{ fontSize: 11, padding: "4px 0", color: req.status === "met" ? C.accent : req.status === "waiver_possible" ? C.gold : C.red }}>
                   {req.display}
                 </div>
@@ -1326,7 +1327,7 @@ export default function ListingScannerTab() {
             {/* Key Parties */}
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 11, color: C.textDim, marginBottom: 6 }}>Key Parties ({regulatory.key_parties.appointed}/{regulatory.key_parties.total})</div>
-              {regulatory.key_parties.details.map((party, i) => (
+              {regulatory.key_parties.details.map((party: any, i: number) => (
                 <div key={i} style={{ fontSize: 11, padding: "3px 0", color: party.appointed ? C.accent : C.textMuted }}>
                   {party.appointed ? "✓" : "○"} {party.name}
                 </div>
@@ -1348,7 +1349,7 @@ export default function ListingScannerTab() {
           {regulatory.quick_wins && regulatory.quick_wins.length > 0 && (
             <Card>
               <div style={{ fontSize: 11, color: C.accent, fontWeight: 700, marginBottom: 8 }}>Quick Wins</div>
-              {regulatory.quick_wins.map((win, i) => (
+              {regulatory.quick_wins.map((win: string, i: number) => (
                 <div key={i} style={{ fontSize: 11, color: C.textDim, padding: "4px 0", borderBottom: i < regulatory.quick_wins.length - 1 ? `1px solid ${C.border}20` : "none" }}>
                   • {win}
                 </div>

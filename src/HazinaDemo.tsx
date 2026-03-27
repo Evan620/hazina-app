@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
+import { useState, useEffect } from "react";
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import ListingScannerTab from "./components/ListingScannerTab";
 import ProspectusCheckerTab from "./components/ProspectusCheckerTab";
 import PredictionsTab from "./components/PredictionsTab";
@@ -99,7 +99,7 @@ const pieData = [
 ];
 
 // ─── COMPONENTS ───
-const Card = ({ children, style, glow }) => (
+const Card = ({ children, style, glow }: { children: React.ReactNode; style?: React.CSSProperties; glow?: boolean }) => (
   <div style={{
     background: C.card, borderRadius: 12, padding: 20,
     border: `1px solid ${glow ? C.accent + "40" : C.border}`,
@@ -108,7 +108,7 @@ const Card = ({ children, style, glow }) => (
   }}>{children}</div>
 );
 
-const Badge = ({ text, color }) => (
+const Badge = ({ text, color }: { text: string; color: string }) => (
   <span style={{
     display: "inline-block", padding: "3px 10px", borderRadius: 20,
     fontSize: 11, fontWeight: 700, background: color + "22", color,
@@ -116,7 +116,7 @@ const Badge = ({ text, color }) => (
   }}>{text}</span>
 );
 
-const Stat = ({ label, value, sub, color }) => (
+const Stat = ({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color?: string }) => (
   <div style={{ textAlign: "center" }}>
     <div style={{ fontSize: 11, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, fontFamily: font }}>{label}</div>
     <div style={{ fontSize: 28, fontWeight: 800, color: color || C.text, fontFamily: font }}>{value}</div>
