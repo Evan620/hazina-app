@@ -1,0 +1,33 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "builds": {
+    "backend": {
+      "dockerContext": "backend",
+      "dockerfile": "backend/Dockerfile",
+      "env": {
+        "ANTHROPIC_API_KEY": {
+          "description": "Claude API key for AI features"
+        },
+        "HUGGINGFACE_API_TOKEN": {
+          "description": "Hugging Face API token for sentiment model"
+        },
+        "DATABASE_URL": {
+          "description": "PostgreSQL connection string (Railway will provide)"
+        },
+        "REDIS_URL": {
+          "description": "Redis connection string (Railway will provide)"
+        }
+      }
+    },
+    "frontend": {
+      "dockerContext": ".",
+      "dockerfile": "Dockerfile",
+      "env": {
+        "VITE_API_URL": {
+          "value": "https://${{backend.HOSTNAME}}",
+          "description": "Backend API URL for frontend"
+        }
+      }
+    }
+  }
+}

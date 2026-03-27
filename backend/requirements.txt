@@ -1,0 +1,47 @@
+# FastAPI and server
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+pydantic==2.9.0
+pydantic-settings==2.6.0
+
+# Database
+sqlalchemy==2.0.35
+asyncpg==0.30.0
+psycopg2-binary==2.9.9
+
+# Redis
+redis==5.2.0
+
+# Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.12
+
+# Scraping
+httpx==0.27.2
+beautifulsoup4==4.12.3
+playwright==1.48.0
+lxml==5.3.0
+
+# NLP & AI
+anthropic==0.40.0
+spacy==3.8.2
+
+# Hugging Face Inference API client
+huggingface_hub==0.26.0
+python-dotenv==1.0.1
+
+# PDF processing
+pypdf2==3.0.1
+pdfplumber==0.11.4
+
+# Scheduling
+apscheduler==3.10.4
+
+# RSS Feeds
+feedparser==6.0.11
+
+# Twitter API
+tweepy==4.14.0
+
+# python-dotenv already included above
