@@ -1,2 +1,11 @@
-# Railway configuration for Hazina app
-# Frontend is built from root, backend from backend/ directory
+# Railway monorepo configuration
+
+# Frontend service (default, uses root Dockerfile)
+[service]
+name = "frontend"
+
+# Backend service override
+[[services]]
+name = "backend"
+dockerfile = "backend/Dockerfile.backend"
+context = "backend"
