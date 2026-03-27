@@ -68,21 +68,9 @@ const COMPANY_NAMES: Record<string, string> = {
   "CHLL": "Chille",
   "BBK": "Barclays",
   "FAF": "Fidelity",
-  "HAFR": "HF Group",
-  "CFCF": "CFC Stanbic",
-  "GSU": "Gaara",
+  "APEA": "Apac",
+  "BBK": "Barclays",
   "ICDC": "Investments & Securities",
-  "KURV": "Kuria",
-  "LVVR": "Livingstone",
-  "MMMM": "Mumias Sugar",
-  "MSC": "Mobius",
-  "NORE": "Nation Express",
-  "PORT": "Portsmouth",
-  "RMS": "Rms",
-  "SFT": "Sameer Africa",
-  "SPWN": "Spencer Flowers",
-  "TKN": "Telkom",
-  "UOM": "Uchumi",
   "WTKR": "Walters Kenya",
 };
 
@@ -215,7 +203,7 @@ export default function PredictionsTab() {
 
         if (data.predictions && data.predictions.length > 0) {
           setPredictions(data.predictions);
-          setPagination(data.pagination);
+          setPagination(data.pagination || { page: 1, page_size: 20, total: 0, total_pages: 1, has_next: false, has_prev: false });
           setLastUpdated(data.last_updated || data.updated_at || null);
           setHasData(true);
         } else {
@@ -284,7 +272,7 @@ export default function PredictionsTab() {
         <div>
           <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>AI Price Predictions</div>
           <div style={{ fontSize: 13, color: C.textMuted }}>
-            Multi-horizon forecasts for {pagination.total} NSE stocks
+            Multi-horizon forecasts for {pagination?.total ?? 0} NSE stocks
             {lastUpdated && (
               <span style={{ color: C.accent, marginLeft: 8 }}>
                 · Updated {new Date(lastUpdated).toLocaleDateString([], {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'})}
@@ -307,7 +295,7 @@ export default function PredictionsTab() {
             }}>📊</div>
             <div>
               <div style={{ fontSize: 10, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>Stocks</div>
-              <div style={{ fontSize: 22, fontWeight: 800 }}>{pagination.total}</div>
+              <div style={{ fontSize: 22, fontWeight: 800 }}>{pagination?.total ?? 0}</div>
             </div>
           </div>
         </Card>
@@ -358,7 +346,7 @@ export default function PredictionsTab() {
               NSE Stocks
             </div>
             <div style={{ fontSize: 11, color: C.textMuted }}>
-              {pagination.total} stocks · Page {pagination.page}/{pagination.total_pages}
+              {pagination?.total ?? 0} stocks · Page {pagination?.page ?? 1}/{pagination?.total_pages ?? 1}
             </div>
           </div>
 
@@ -405,11 +393,11 @@ export default function PredictionsTab() {
 
           {/* Pagination */}
           <Pagination
-            page={pagination.page}
-            totalPages={pagination.total_pages}
+            page={pagination?.page ?? 1}
+            totalPages={pagination?.total_pages ?? 1}
             onPageChange={handlePageChange}
-            hasNext={pagination.has_next}
-            hasPrev={pagination.has_prev}
+            hasNext={pagination?.has_next ?? false}
+            hasPrev={pagination?.has_prev ?? false}
           />
         </Card>
 

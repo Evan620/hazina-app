@@ -1334,7 +1334,7 @@ export default function ListingScannerTab() {
               {result.verification.confirmations?.length > 0 && (
                 <div style={{ marginBottom: 8 }}>
                   <div style={{ color: C.accent, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>✓ Verified ({result.verification.confirmations.length})</div>
-                  {result.verification.confirmations.slice(0, 2).map((c, i) => (
+                  {result.verification.confirmations.slice(0, 2).map((c: any, i: number) => (
                     <div key={i} style={{ fontSize: 10, color: C.textDim }}>{c.field}: {c.value}</div>
                   ))}
                 </div>
@@ -1342,7 +1342,7 @@ export default function ListingScannerTab() {
               {result.verification.discrepancies?.length > 0 && (
                 <div style={{ marginBottom: 8 }}>
                   <div style={{ color: C.gold, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>⚠ Discrepancies ({result.verification.discrepancies.length})</div>
-                  {result.verification.discrepancies.map((d, i) => (
+                  {result.verification.discrepancies.map((d: any, i: number) => (
                     <div key={i} style={{ fontSize: 10, color: C.textDim }}>↪ {d.field}: {d.claimed} vs public: {d.public}</div>
                   ))}
                 </div>

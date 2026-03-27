@@ -28,10 +28,12 @@ interface ComplianceResult {
   analyzed_at: string;
 }
 
-const Card = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+const Card = ({ children, style, glow }: { children: React.ReactNode; style?: React.CSSProperties; glow?: boolean }) => (
   <div style={{
     background: C.card, borderRadius: 12, padding: 20,
-    border: `1px solid ${C.border}`, ...style
+    border: `1px solid ${glow ? C.accent + "40" : C.border}`,
+    boxShadow: glow ? `0 0 20px ${C.accent}15}` : "none",
+    ...style
   }}>{children}</div>
 );
 
