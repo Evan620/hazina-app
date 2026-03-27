@@ -68,10 +68,6 @@ const COMPANY_NAMES: Record<string, string> = {
   "CHLL": "Chille",
   "BBK": "Barclays",
   "FAF": "Fidelity",
-  "APEA": "Apac",
-  "BBK": "Barclays",
-  "ICDC": "Investments & Securities",
-  "WTKR": "Walters Kenya",
 };
 
 // Components

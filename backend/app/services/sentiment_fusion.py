@@ -161,10 +161,13 @@ class SentimentFusionEngine:
         try:
             client = self.get_hf_client()
 
+            # Truncate text to avoid token limit errors (model max is 512 tokens)
+            truncated = text[:500] if len(text) > 500 else text
+
             # Call HF Inference API - text_classification is synchronous
             result = client.text_classification(
                 model=HF_MODEL,
-                text=text
+                text=truncated
             )
 
             if not result or len(result) == 0:
@@ -329,6 +332,10 @@ async def get_sentiment_engine() -> SentimentFusionEngine:
     if _engine_instance is None:
         _engine_instance = SentimentFusionEngine()
     return _engine_instance
+
+
+# Alias for backwards compatibility with news_scraper
+get_fusion_engine = get_sentiment_engine
 
 
 async def analyze_sentiment_batch(articles: List[Dict]) -> List[Dict]:

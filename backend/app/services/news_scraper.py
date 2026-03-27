@@ -363,10 +363,11 @@ async def run_news_scraper():
     print("\n🧠 Running sentiment fusion analysis...")
     signals = []
 
-    fusion_engine = get_fusion_engine()
+    fusion_engine = await get_fusion_engine()
     for article in nse_articles:
         result = await fusion_engine.analyze_article(article)
-        if result:
+        # Only save signals where a company was detected
+        if result and result.get('company_mentioned'):
             signals.append(result)
             print(f"   {result.get('company_mentioned', 'Unknown')}: {result.get('sentiment', 'unknown').upper()} ({result.get('confidence', 0):.0%})")
 
@@ -381,7 +382,7 @@ async def run_news_scraper():
 async def analyze_article_sentiment(article: Dict) -> Optional[Dict]:
     """Analyze a single article using fusion engine."""
     try:
-        fusion_engine = get_fusion_engine()
+        fusion_engine = await get_fusion_engine()
         return await fusion_engine.analyze_article(article)
     except Exception as e:
         print(f"Error analyzing article: {e}")

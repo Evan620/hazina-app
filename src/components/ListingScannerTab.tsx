@@ -2,6 +2,34 @@ import { useState } from "react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import DocumentUpload, { ManualVerificationInput } from "./DocumentUpload";
 
+// Types
+interface FormData {
+  company_name: string;
+  sector: string;
+  segment: "GEMS" | "AIMS" | "MIMS";
+  website: string;
+  issued_share_capital: string;
+  shareholders_count: string;
+  free_float_percent: string;
+  trading_years: string;
+  revenue_years_count: string;
+  revenue_year_1: string;
+  revenue_year_2: string;
+  revenue_year_3: string;
+  tax_compliant: boolean;
+  litigation: string;
+  board_members: Array<{ name: string; role: string; independent: boolean }>;
+  key_parties: string[];
+  documents_ready: string[];
+}
+
+interface SegmentsType {
+  GEMS: { name: string; description: string; source: string; requirements: Array<{ req: string; icon: string }> };
+  AIMS: { name: string; description: string; source: string; requirements: Array<{ req: string; icon: string }> };
+  MIMS: { name: string; description: string; source: string; requirements: Array<{ req: string; icon: string }> };
+  [key: string]: { name: string; description: string; source: string; requirements: Array<{ req: string; icon: string }> };
+}
+
 // Theme colors matching HazinaDemo.tsx
 const C = {
   bg: "#060B18",
@@ -19,6 +47,7 @@ const C = {
   text: "#F1F5F9",
   textDim: "#94A3B8",
   textMuted: "#64748B",
+  warning: "#F59E0B",
 };
 
 // Step definitions for navigation
@@ -97,16 +126,16 @@ const StepNav = ({ currentStep, onStepClick, result }: { currentStep: number; on
 };
 
 // Components
-const Card = ({ children, style, glow }) => (
+const Card = ({ children, style, glow }: { children: React.ReactNode; style?: React.CSSProperties; glow?: boolean }) => (
   <div style={{
     background: C.card, borderRadius: 12, padding: 20,
     border: `1px solid ${glow ? C.accent + "40" : C.border}`,
-    boxShadow: glow ? `0 0 20px ${C.accent}15` : "none",
+    boxShadow: glow ? `0 0 20px ${C.accent}15}` : "none",
     ...style
   }}>{children}</div>
 );
 
-const Badge = ({ text, color }) => (
+const Badge = ({ text, color }: { text: string; color: string }) => (
   <span style={{
     display: "inline-block", padding: "3px 10px", borderRadius: 20,
     fontSize: 11, fontWeight: 700, background: color + "22", color,
@@ -116,7 +145,7 @@ const Badge = ({ text, color }) => (
 
 // NSE Segment Information
 // Source: NSE Guide to Listing (https://www.nse.co.ke/wp-content/uploads/guide-to-listing-2.pdf)
-const SEGMENTS = {
+const SEGMENTS: SegmentsType = {
   GEMS: {
     name: "GEMS (SMEs/Startups)",
     description: "Growth Enterprise Market Segment — designed for SMEs and startups",
@@ -172,7 +201,7 @@ const REQUIRED_DOCUMENTS = [
 ];
 
 // Initial form state
-const initialFormData = {
+const initialFormData: FormData = {
   company_name: "",
   sector: "",
   segment: "GEMS",
@@ -205,9 +234,9 @@ const getRevenueYears = () => {
 export default function ListingScannerTab() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [result, setResult] = useState(null);
-  const [formData, setFormData] = useState(initialFormData);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<any | null>(null);
+  const [formData, setFormData] = useState<FormData>(initialFormData);
 
   // NEW: State for document uploads and manual verification
   const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, File>>({});

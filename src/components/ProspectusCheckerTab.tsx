@@ -128,15 +128,6 @@ export default function ProspectusCheckerTab() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "critical": return C.red;
-      case "major": return C.gold;
-      case "minor": return C.blue;
-      default: return C.textDim;
-    }
-  };
-
   const getScoreColor = (score: number) => {
     if (score >= 70) return C.accent;
     if (score >= 50) return C.gold;
