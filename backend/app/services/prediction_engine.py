@@ -153,62 +153,105 @@ async def generate_prediction_reasoning(
     """
     Use Claude to generate contextual reasoning for the prediction.
     """
+    from app.services.sentiment_fusion import NSE_SYMBOLS
+
     sentiment = sentiment_data.get("overall", 0.5)
     news_score = sentiment_data.get("news", 0.5)
-    twitter_score = sentiment_data.get("twitter", 0.5)
+    twitter_score = sentiment_data.get("twitter")
     signal_count = sentiment_data.get("signal_count", 0)
     top_signals = sentiment_data.get("top_signals", [])
 
+    # Get company name and sector
+    company_info = NSE_SYMBOLS.get(symbol.upper(), {})
+    company_name = company_info.get("name", symbol)
+
     direction_desc = {
-        "UP": "expected to rise",
-        "DOWN": "expected to decline",
-        "HOLD": "expected to remain stable"
-    }.get(direction, "uncertain")
+        "UP": "rise",
+        "DOWN": "fall",
+        "HOLD": "remain stable"
+    }.get(direction, "move")
 
-    # Build context from top signals
-    signal_context = ""
+    # Build context from top signals - extract specific details
+    signal_details = []
     if top_signals:
-        for i, sig in enumerate(top_signals[:2], 1):
-            snippet = sig.get("snippet", "")[:100]
+        for sig in top_signals[:3]:
             reason = sig.get("reason", "")
-            signal_context += f"\n  {i}. {sig['sentiment'].upper()} ({sig['confidence']:.0%}): {reason}"
-            if snippet:
-                signal_context += f"\n     \"{snippet}\""
+            snippet = sig.get("snippet", "")
+            title = sig.get("title", "")
 
-    prompt = f"""Generate a 1-sentence reasoning for this stock prediction.
+            # Extract the most specific information
+            if snippet and len(snippet) > 20:
+                # Use snippet but truncate intelligently
+                signal_details.append(f"- {snippet[:150]}")
+            elif reason:
+                signal_details.append(f"- {reason}")
+            elif title:
+                signal_details.append(f"- {title}")
 
-Symbol: {symbol}
-Prediction: {direction_desc} in {horizon_days} days
-Overall Sentiment: {sentiment:.0%} ({"Bullish" if sentiment > 0.5 else "Bearish"})
-Signal Count: {signal_count}
-Key signals:{signal_context}
+    signals_text = "\n".join(signal_details) if signal_details else "No specific signals available"
 
-Task: Explain WHY this prediction makes sense in 1 concise sentence.
-Reference the actual news/sentiment factors above.
+    # Build a more specific prompt
+    prompt = f"""You are a NSE (Nairobi Securities Exchange) analyst. Write ONE specific, direct sentence explaining why {company_name} ({symbol}) stock is expected to {direction_desc} in {horizon_days} days.
+
+CONTEXT:
+- Current Price: KES {current_price:.2f}
+- Overall Sentiment: {sentiment:.1%} ({"Strongly Bullish" if sentiment >= 0.7 else "Bullish" if sentiment > 0.55 else "Bearish" if sentiment < 0.3 else "Neutral"})
+- Signal Count: {signal_count}
+- News Sentiment: {news_score:.1%}{" | Twitter Sentiment: " + str(twitter_score) + "" if twitter_score else ""}
+
+KEY SIGNALS/NEWS:
+{signals_text}
+
+RULES:
+- Be SPECIFIC - mention actual events, metrics, or catalysts from the signals above
+- Be DIRECT - say exactly what will move the stock and why
+- Be BRIEF - one sentence only
+- Avoid generic phrases like "driving the market" or "overwhelmingly bullish"
+- Focus on the WHAT and WHY (e.g., "Q3 earnings beat", "dividend announcement", "CB rate hike")
 
 Return ONLY the reasoning sentence, nothing else."""
 
     try:
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
-            max_tokens=100,
-            temperature=0.5,
+            max_tokens=80,
+            temperature=0.3,  # Lower temperature for more focused output
             messages=[{"role": "user", "content": prompt}]
         )
 
-        return response.content[0].text.strip()
+        reasoning = response.content[0].text.strip()
+
+        # Post-process to remove generic phrases
+        generic_phrases = [
+            "driving the market",
+            "overwhelmingly bullish",
+            "overwhelmingly bearish",
+            "prevailing pessimism",
+            "prevailing optimism",
+            "market expectations",
+        ]
+        for phrase in generic_phrases:
+            reasoning = reasoning.replace(phrase, "")
+
+        return reasoning.strip()
 
     except Exception as e:
+        logger.debug(f"Claude reasoning error for {symbol}: {e}")
+
         # Better fallback using actual signal data
         if top_signals:
             sig = top_signals[0]
-            return f"{sig['sentiment'].capitalize()} sentiment ({sig['confidence']:.0%}): {sig['reason']}"
+            reason = sig.get("reason", "")
+            snippet = sig.get("snippet", "")[:80]
+            if snippet:
+                return f"{sig['sentiment'].capitalize()}: {snippet}..."
+            return f"{sig['sentiment'].capitalize()} signal: {reason}"
         elif direction == "UP":
-            return f"Positive sentiment ({sentiment:.0%}) from {signal_count} signals suggests upside potential."
+            return f"{sentiment:.0%} positive sentiment from {signal_count} signal{'s' if signal_count != 1 else ''}"
         elif direction == "DOWN":
-            return f"Negative sentiment ({sentiment:.0%}) from {signal_count} signals indicates downside risk."
+            return f"{sentiment:.0%} negative sentiment from {signal_count} signal{'s' if signal_count != 1 else ''}"
         else:
-            return f"Mixed signals ({signal_count} mentions) suggest sideways movement."
+            return f"Neutral sentiment from {signal_count} signal{'s' if signal_count != 1 else ''}"
 
 
 # ============================================================================
