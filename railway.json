@@ -6,7 +6,7 @@
     "watchPatterns": ["src/**"]
   },
   "deploy": {
-    "startCommand": "npx serve dist -p 80",
+    "startCommand": "npm run preview -- --host 0.0.0.0 --port $PORT",
     "healthcheckPath": "/"
   }
 }
