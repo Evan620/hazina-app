@@ -149,50 +149,57 @@ class SentimentFusionEngine:
 
     async def get_linguistic_sentiment(self, text: str) -> Dict:
         """
-        Get linguistic sentiment from multilingual model via HF Inference API.
+        Get sentiment using Claude API (replaces Hugging Face).
 
         Returns:
             {"sentiment": "positive/negative/neutral", "confidence": float, "raw_scores": {...}}
         """
-        if not self.use_hf_api:
-            logger.warning("HUGGINGFACE_API_TOKEN not set, returning neutral sentiment")
-            return {"sentiment": "neutral", "confidence": 0.5, "raw_scores": {}}
-
+        # DISABLED: Hugging Face Twitter model was too generic
+        # Now using Claude for accurate financial sentiment analysis
         try:
-            client = self.get_hf_client()
+            prompt = f"""Analyze the sentiment of this financial news text for the Nairobi Securities Exchange.
 
-            # Truncate text to avoid token limit errors (model max is 512 tokens)
-            truncated = text[:500] if len(text) > 500 else text
+Text: {text[:1000]}
 
-            # Call HF Inference API - text_classification is synchronous
-            result = client.text_classification(
-                model=HF_MODEL,
-                text=truncated
+Return JSON only:
+{{
+  "sentiment": "positive" or "negative" or "neutral",
+  "confidence": 0.0 to 1.0,
+  "reason": "brief explanation"
+}}
+
+Rules:
+- "Revenue growth", "profit increase", "dividend", "expansion" = positive
+- "Loss", "decline", "layoffs", "regulatory issues", "debt" = negative
+- Mixed or unclear = neutral
+- Be confident when signals are clear
+"""
+
+            response = self.claude_client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=300,
+                temperature=0.2,
+                messages=[{"role": "user", "content": prompt}]
             )
 
-            if not result or len(result) == 0:
-                logger.warning("Empty response from HF API")
-                return {"sentiment": "neutral", "confidence": 0.5, "raw_scores": {}}
+            import json
+            response_text = response.content[0].text
 
-            # Find highest score
-            best = max(result, key=lambda x: x.score if hasattr(x, 'score') else 0)
-            sentiment = best.label.lower() if hasattr(best, 'label') else "neutral"
-            confidence = float(best.score) if hasattr(best, 'score') else 0.5
+            if "```json" in response_text:
+                response_text = response_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in response_text:
+                response_text = response_text.split("```")[1].split("```")[0].strip()
 
-            # Build raw scores dict
-            raw_scores = {
-                r.label.lower(): float(r.score) if hasattr(r, 'score') else 0.0
-                for r in result
-            }
+            result = json.loads(response_text)
 
             return {
-                "sentiment": sentiment,
-                "confidence": confidence,
-                "raw_scores": raw_scores
+                "sentiment": result.get("sentiment", "neutral"),
+                "confidence": round(result.get("confidence", 0.5), 3),
+                "raw_scores": {}
             }
 
         except Exception as e:
-            logger.error(f"Error calling HF Inference API: {e}")
+            logger.error(f"Error calling Claude for sentiment: {e}")
             return {"sentiment": "neutral", "confidence": 0.5, "raw_scores": {}}
 
     def detect_financial_context(self, text: str) -> Dict:
