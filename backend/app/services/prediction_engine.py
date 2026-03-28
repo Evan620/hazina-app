@@ -263,7 +263,7 @@ Return ONLY the reasoning sentence, nothing else."""
 # MAIN PREDICTION ENGINE
 # ============================================================================
 
-async def aggregate_sentiment(symbol: str, hours: int = 48) -> Dict:
+async def aggregate_sentiment(symbol: str, hours: int = 120) -> Dict:  # 5 days of sentiment data
     """
     Aggregate sentiment from news and Twitter sources.
 
