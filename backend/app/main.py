@@ -50,6 +50,17 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.debug(f"has_twitter column migration: {e}")
 
+    # Make twitter_sentiment column nullable (in case it was created with NOT NULL)
+    try:
+        from sqlalchemy import text
+        async with engine.begin() as conn:
+            await conn.execute(text(
+                "ALTER TABLE stock_predictions ALTER COLUMN twitter_sentiment DROP NOT NULL"
+            ))
+            logger.info("Made twitter_sentiment column nullable")
+    except Exception as e:
+        logger.debug(f"twitter_sentiment nullable migration: {e}")
+
     # Clear ALL twitter_sentiment values (force reset - no actual Twitter data yet)
     try:
         from sqlalchemy import text
@@ -57,7 +68,6 @@ async def lifespan(app: FastAPI):
             result = await conn.execute(text(
                 "UPDATE stock_predictions SET twitter_sentiment = NULL, has_twitter = FALSE"
             ))
-            await conn.commit()
             logger.info(f"Force-cleared twitter_sentiment for all rows (affected: {result.rowcount})")
     except Exception as e:
         logger.error(f"Error clearing twitter_sentiment: {e}")
