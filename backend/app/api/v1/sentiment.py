@@ -273,3 +273,24 @@ async def clear_old_signals():
         "deleted": result.rowcount,
         "message": f"Cleared {result.rowcount} old signals"
     }
+
+
+@router.post("/clear-all")
+async def clear_all_signals():
+    """
+    Clear ALL sentiment signals from database.
+    Use this to start fresh with a new scrape.
+    """
+    from app.db.database import SentimentSignal
+
+    async with async_session_maker() as session:
+        from sqlalchemy import delete
+        stmt = delete(SentimentSignal)
+        result = await session.execute(stmt)
+        await session.commit()
+
+    return {
+        "status": "success",
+        "deleted": result.rowcount,
+        "message": f"Cleared all {result.rowcount} signals"
+    }
