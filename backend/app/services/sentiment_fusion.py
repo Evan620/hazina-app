@@ -1,6 +1,6 @@
 """
 Sentiment Engine
-Uses FinBERT (local) with VADER fallback for financial sentiment analysis.
+Uses FinBERT (local) for financial sentiment analysis.
 """
 
 import asyncio
@@ -10,7 +10,6 @@ from typing import Dict, Optional, List
 from datetime import datetime
 from pathlib import Path
 
-from vaderSentiment import SentimentIntensityAnalyzer
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
@@ -25,15 +24,10 @@ logger = logging.getLogger(__name__)
 
 # Model configuration
 FINBERT_MODEL = "ProsusAI/finbert"
-VADER_FALLBACK = True  # Use VADER if FinBERT fails
-
-# Load VADER (lightweight, rule-based, works immediately)
-vader_analyzer = SentimentIntensityAnalyzer()
 
 # FinBERT model cache
 _finbert_model = None
-_finbert_tokenizer = None
-_finbert_device = None
+_finbert_tokenizer = _finbert_device = None
 
 
 def get_finbert_model():
@@ -47,7 +41,7 @@ def get_finbert_model():
         logger.info(f"Loading FinBERT model ({FINBERT_MODEL})...")
         _finbert_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         _finbert_tokenizer = AutoTokenizer.from_pretrained(FINBERT_MODEL)
-        _finbert_model = AutoModelForSequenceClassification.from_pretrained(FINBERT_MODEL)
+        _finbert_model = for MlSequenceClassification.from_pretrained(FINBERT_MODEL)
         _finbert_model.to(_finbert_device)
         _finbert_model.eval()
         logger.info(f"FinBERT loaded successfully on {_finbert_device}")
@@ -112,12 +106,12 @@ async def analyze_sentiment_finbert(text: str) -> Dict:
     model, tokenizer, device = get_finbert_model()
 
     if model is None:
-        logger.warning("FinBERT not available, using VADER fallback")
-        return analyze_sentiment_vader(text)
+        logger.warning("FinBERT not available")
+        return {"sentiment": "neutral", "confidence": 0.5}
 
     try:
         # FinBERT labels: positive, negative, neutral
-        # Map to our needs: positive→bullish, negative→bearish
+        # Map to our needs
         inputs = tokenizer(text[:512], return_tensors="pt", truncation=True, max_length=512)
         inputs = {k: v.to(device) for k, v in inputs.items()}
 
@@ -128,11 +122,11 @@ async def analyze_sentiment_finbert(text: str) -> Dict:
             confidence = confidence.item()
             predicted_class_id = predicted_class_id.item()
 
-        # Map FinBERT labels to our format
+        # Map FinBERT labels
         label_mapping = {
-            0: "negative",   # FinBERT label 0
-            1: "neutral",    # FinBERT label 1
-            2: "positive"    # FinBERT label 2
+            0: "negative",
+            1: "neutral",
+            2: "positive"
         }
 
         sentiment = label_mapping.get(predicted_class_id, "neutral")
@@ -146,48 +140,12 @@ async def analyze_sentiment_finbert(text: str) -> Dict:
 
     except Exception as e:
         logger.error(f"FinBERT analysis failed: {e}")
-        return analyze_sentiment_vader(text)
-
-
-def analyze_sentiment_vader(text: str) -> Dict:
-    """
-    Analyze sentiment using VADER (rule-based, financial-aware).
-
-    VADER is specifically designed for social media and works well for financial text.
-    """
-    try:
-        scores = vader_analyzer.polarity_scores(text)
-
-        # VADER returns: compound (overall), positive, negative, neutral
-        # compound ranges from -1 (most negative) to +1 (most positive)
-
-        compound = scores['compound']
-
-        if compound >= 0.05:
-            sentiment = "positive"
-            confidence = min(0.95, 0.5 + abs(compound) * 0.45)
-        elif compound <= -0.05:
-            sentiment = "negative"
-            confidence = min(0.95, 0.5 + abs(compound) * 0.45)
-        else:
-            sentiment = "neutral"
-            confidence = 0.5
-
-        logger.info(f"VADER: {sentiment} ({confidence:.2%})")
-
-        return {
-            "sentiment": sentiment,
-            "confidence": round(confidence, 3)
-        }
-
-    except Exception as e:
-        logger.error(f"VADER analysis failed: {e}")
         return {"sentiment": "neutral", "confidence": 0.5}
 
 
 async def analyze_article(article: Dict) -> Dict:
     """
-    Main entry point: Analyze article using FinBERT with VADER fallback.
+    Main entry point: Analyze article using FinBERT.
 
     Args:
         article: {title, url, source, content?}
@@ -224,7 +182,7 @@ async def analyze_article(article: Dict) -> Dict:
     # Detect company
     company = detect_company_strict(full_text)
 
-    # Get sentiment (FinBERT with VADER fallback)
+    # Get sentiment with FinBERT
     sentiment_result = await analyze_sentiment_finbert(full_text)
 
     # Generate reason
@@ -255,7 +213,6 @@ async def save_sentiment_signals(signals: List[Dict]) -> None:
         return
 
     from app.db.database import SentimentSignal, async_session_maker
-    from sqlalchemy import select
 
     async with async_session_maker() as session:
         for signal_data in signals:
@@ -264,6 +221,7 @@ async def save_sentiment_signals(signals: List[Dict]) -> None:
 
             created_at = signal_data.get("created_at")
             if isinstance(created_at, str):
+                from datetime import timedelta
                 created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
             else:
                 created_at = datetime.utcnow()
@@ -286,14 +244,14 @@ async def save_sentiment_signals(signals: List[Dict]) -> None:
 
 async def run_news_scraper():
     """
-    News scraper using FinBERT with VADER fallback.
+    News scraper using FinBERT.
     """
     from app.services.news_scraper import (
         fetch_business_daily_rss,
         scrape_the_star,
     )
 
-    print(f"[{datetime.utcnow()}] Running news scraper with FinBERT+VADER...")
+    print(f"[{datetime.utcnow()}] Running news scraper with FinBERT...")
     print("=" * 60)
 
     all_articles = []
@@ -301,7 +259,6 @@ async def run_news_scraper():
     # Fetch from working sources
     print("📡 Fetching articles...")
 
-    import asyncio
     tasks = [
         fetch_business_daily_rss(),
         scrape_the_star(),
@@ -336,6 +293,8 @@ async def run_news_scraper():
 # Demo data for testing
 def get_demo_sentiment_signals() -> List[Dict]:
     """Return demo sentiment signals for testing."""
+    from datetime import timedelta
+
     return [
         {
             "company_mentioned": "SCOM",
@@ -385,5 +344,4 @@ def get_demo_sentiment_signals() -> List[Dict]:
 
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(run_news_scraper())
