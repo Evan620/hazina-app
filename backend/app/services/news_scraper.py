@@ -18,7 +18,7 @@ from typing import List, Dict, Optional
 from playwright.async_api import async_playwright
 
 from app.db.database import SentimentSignal, async_session_maker
-from app.services.sentiment_fusion import get_fusion_engine, NSE_SYMBOLS
+from app.services.sentiment_fusion import NSE_SYMBOLS, analyze_article
 
 
 # ============================================================================
@@ -360,12 +360,11 @@ async def run_news_scraper():
     print(f"   Articles with full content: {with_content}/{len(nse_articles)}")
 
     # Analyze sentiment
-    print("\n🧠 Running sentiment fusion analysis...")
+    print("\n🧠 Running FinBERT sentiment analysis...")
     signals = []
 
-    fusion_engine = await get_fusion_engine()
     for article in nse_articles:
-        result = await fusion_engine.analyze_article(article)
+        result = await analyze_article(article)
         # Only save signals where a company was detected
         if result and result.get('company_mentioned'):
             signals.append(result)
@@ -380,10 +379,9 @@ async def run_news_scraper():
 
 
 async def analyze_article_sentiment(article: Dict) -> Optional[Dict]:
-    """Analyze a single article using fusion engine."""
+    """Analyze a single article using FinBERT."""
     try:
-        fusion_engine = await get_fusion_engine()
-        return await fusion_engine.analyze_article(article)
+        return await analyze_article(article)
     except Exception as e:
         print(f"Error analyzing article: {e}")
         return None
