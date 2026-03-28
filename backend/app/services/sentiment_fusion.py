@@ -133,10 +133,7 @@ class SentimentFusionEngine:
     def get_hf_client(cls) -> InferenceClient:
         """Get or create HF Inference client."""
         if cls._hf_client is None:
-            cls._hf_client = InferenceClient(
-                provider="hf-inference",
-                api_key=HF_API_TOKEN,
-            )
+            cls._hf_client = InferenceClient(token=HF_API_TOKEN)
         return cls._hf_client
 
     def detect_company(self, text: str) -> Optional[str]:
