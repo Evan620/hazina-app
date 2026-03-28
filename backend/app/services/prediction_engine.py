@@ -56,12 +56,12 @@ class StockPrediction:
     symbol: str
     current_price: float
     predictions: List[Prediction]
-    overall_sentiment: float
-    news_sentiment: float
-    twitter_sentiment: Optional[float]  # None if no Twitter data
-    signal_count: int
+    twitter_sentiment: Optional[float]  # None if no Twitter data (optional field first)
     has_twitter: bool = False
-    last_updated: str
+    overall_sentiment: float = 0.5
+    news_sentiment: float = 0.5
+    signal_count: int = 0
+    last_updated: str = ""
 
 
 # ============================================================================
