@@ -50,21 +50,17 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.debug(f"has_twitter column migration: {e}")
 
-    # Clear twitter_sentiment for stocks without Twitter data
+    # Clear ALL twitter_sentiment values (force reset - no actual Twitter data yet)
     try:
         from sqlalchemy import text
         async with engine.begin() as conn:
-            # First set has_twitter based on whether twitter_sentiment is not the default 0.5
-            await conn.execute(text(
-                "UPDATE stock_predictions SET has_twitter = TRUE WHERE twitter_sentiment IS NOT NULL AND twitter_sentiment != 0.5"
+            result = await conn.execute(text(
+                "UPDATE stock_predictions SET twitter_sentiment = NULL, has_twitter = FALSE"
             ))
-            # Then clear twitter_sentiment where has_twitter is FALSE
-            await conn.execute(text(
-                "UPDATE stock_predictions SET twitter_sentiment = NULL WHERE has_twitter = FALSE OR (twitter_sentiment = 0.5 AND has_twitter = FALSE)"
-            ))
-            logger.info("Cleared twitter_sentiment for stocks without Twitter data")
+            await conn.commit()
+            logger.info(f"Force-cleared twitter_sentiment for all rows (affected: {result.rowcount})")
     except Exception as e:
-        logger.debug(f"Twitter sentiment clear: {e}")
+        logger.error(f"Error clearing twitter_sentiment: {e}")
 
     # Start prediction cache scheduler
     from app.services.prediction_scheduler import start_scheduler
