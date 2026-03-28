@@ -361,8 +361,9 @@ async def generate_predictions(
 
     # Get news and Twitter breakdown
     news_sentiment = sentiment["news"]
-    twitter_sentiment = sentiment["twitter"]
+    twitter_sentiment = sentiment.get("twitter")  # None if no Twitter data
     overall_sentiment = sentiment["overall"]
+    has_twitter = sentiment.get("has_twitter", False)
 
     # Generate predictions for each horizon
     predictions = []
