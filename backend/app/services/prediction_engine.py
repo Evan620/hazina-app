@@ -161,9 +161,14 @@ async def generate_prediction_reasoning(
     signal_count = sentiment_data.get("signal_count", 0)
     top_signals = sentiment_data.get("top_signals", [])
 
-    # Get company name and sector
-    company_info = NSE_SYMBOLS.get(symbol.upper(), {})
-    company_name = company_info.get("name", symbol)
+    # Get company name - NSE_SYMBOLS can be string or dict
+    company_info = NSE_SYMBOLS.get(symbol.upper())
+    if isinstance(company_info, str):
+        company_name = company_info
+    elif isinstance(company_info, dict):
+        company_name = company_info.get("name", symbol)
+    else:
+        company_name = symbol
 
     direction_desc = {
         "UP": "rise",
