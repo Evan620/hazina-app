@@ -1,5 +1,0 @@
-[railway]
-# Disable Railpack, use Docker
-[build]
-builder = "DOCKERFILE"
-dockerfile = "Dockerfile"
