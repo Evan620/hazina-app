@@ -54,6 +54,7 @@ async def update_prediction_cache():
                     existing.overall_sentiment = pred.overall_sentiment
                     existing.news_sentiment = pred.news_sentiment
                     existing.twitter_sentiment = pred.twitter_sentiment
+                    existing.has_twitter = pred.has_twitter
                     existing.signal_count = pred.signal_count
                     existing.predictions = {
                         "predictions": [
@@ -75,6 +76,7 @@ async def update_prediction_cache():
                         overall_sentiment=pred.overall_sentiment,
                         news_sentiment=pred.news_sentiment,
                         twitter_sentiment=pred.twitter_sentiment,
+                        has_twitter=pred.has_twitter,
                         signal_count=pred.signal_count,
                         predictions={
                             "predictions": [
@@ -128,6 +130,7 @@ async def get_cached_predictions() -> list:
                 "overall_sentiment": c.overall_sentiment,
                 "news_sentiment": c.news_sentiment,
                 "twitter_sentiment": c.twitter_sentiment,
+                "has_twitter": c.has_twitter,
                 "signal_count": c.signal_count,
                 "predictions": pred_list,
                 "updated_at": c.updated_at.isoformat() if c.updated_at else None

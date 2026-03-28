@@ -55,7 +55,7 @@ async def get_stock_predictions(
             "sentiment": {
                 "overall": pred["overall_sentiment"],
                 "news": pred["news_sentiment"],
-                "twitter": pred["twitter_sentiment"]
+                **({"twitter": pred["twitter_sentiment"]} if pred.get("twitter_sentiment") is not None else {})
             },
             "signal_count": pred["signal_count"],
             "last_updated": pred.get("updated_at"),
@@ -141,15 +141,18 @@ async def get_batch_predictions(
         # Transform to API format
         predictions = []
         for p in paginated:
-            predictions.append({
+            pred_data = {
                 "symbol": p["symbol"],
                 "current_price": p["current_price"],
                 "predictions": p["predictions"],
                 "overall_sentiment": p["overall_sentiment"],
                 "news_sentiment": p.get("news_sentiment", 0.5),
-                "twitter_sentiment": p.get("twitter_sentiment", 0.5),
                 "signal_count": p["signal_count"]
-            })
+            }
+            # Only include twitter_sentiment if we have data
+            if p.get("twitter_sentiment") is not None:
+                pred_data["twitter_sentiment"] = p["twitter_sentiment"]
+            predictions.append(pred_data)
 
         # Get the most recent update time
         last_update = max((p.get("updated_at") for p in all_predictions), default=None)

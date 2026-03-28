@@ -39,6 +39,17 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.debug(f"Snippet column migration: {e}")
 
+    # Add has_twitter column to stock_predictions
+    try:
+        from sqlalchemy import text
+        async with engine.begin() as conn:
+            await conn.execute(text(
+                "ALTER TABLE stock_predictions ADD COLUMN IF NOT EXISTS has_twitter BOOLEAN DEFAULT FALSE"
+            ))
+            logger.info("Added has_twitter column to stock_predictions")
+    except Exception as e:
+        logger.debug(f"has_twitter column migration: {e}")
+
     # Start prediction cache scheduler
     from app.services.prediction_scheduler import start_scheduler
     start_scheduler()

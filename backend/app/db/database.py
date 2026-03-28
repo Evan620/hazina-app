@@ -155,7 +155,8 @@ class StockPrediction(Base):
     # Sentiment scores
     overall_sentiment: Mapped[float] = mapped_column(Float, default=0.5)  # 0-1
     news_sentiment: Mapped[float] = mapped_column(Float, default=0.5)  # 0-1
-    twitter_sentiment: Mapped[float] = mapped_column(Float, default=0.5)  # 0-1
+    twitter_sentiment: Mapped[float] = mapped_column(Float, nullable=True)  # 0-1, null if no data
+    has_twitter: Mapped[bool] = mapped_column(Boolean, default=False)  # Whether Twitter signals exist
 
     # Signal count
     signal_count: Mapped[int] = mapped_column(Integer, default=0)

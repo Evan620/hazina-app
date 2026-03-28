@@ -58,8 +58,9 @@ class StockPrediction:
     predictions: List[Prediction]
     overall_sentiment: float
     news_sentiment: float
-    twitter_sentiment: float
+    twitter_sentiment: Optional[float]  # None if no Twitter data
     signal_count: int
+    has_twitter: bool = False
     last_updated: str
 
 
@@ -222,12 +223,13 @@ async def aggregate_sentiment(symbol: str, hours: int = 48) -> Dict:
         {
             "overall": float (0-1),
             "news": float (0-1),
-            "twitter": float (0-1),
+            "twitter": float (0-1) OR OMITTED if no data,
             "signal_count": int,
             "positive": int,
             "negative": int,
             "neutral": int,
-            "top_signals": List of most significant signals with snippets
+            "top_signals": List of most significant signals with snippets,
+            "has_twitter": bool
         }
     """
     cutoff_time = datetime.utcnow() - timedelta(hours=hours)
@@ -250,12 +252,12 @@ async def aggregate_sentiment(symbol: str, hours: int = 48) -> Dict:
         return {
             "overall": 0.5,
             "news": 0.5,
-            "twitter": 0.5,
             "signal_count": 0,
             "positive": 0,
             "negative": 0,
             "neutral": 0,
-            "top_signals": []
+            "top_signals": [],
+            "has_twitter": False
         }
 
     # Separate by source
@@ -285,10 +287,15 @@ async def aggregate_sentiment(symbol: str, hours: int = 48) -> Dict:
         return weighted_sum / total_weight if total_weight > 0 else 0.5
 
     news_sentiment = calc_sentiment(news_signals)
-    twitter_sentiment = calc_sentiment(twitter_signals)
 
-    # Weighted average
-    overall = (news_sentiment * NEWS_WEIGHT) + (twitter_sentiment * TWITTER_WEIGHT)
+    # Calculate overall - adjust weights if Twitter is empty
+    has_twitter = len(twitter_signals) > 0
+    if has_twitter:
+        twitter_sentiment = calc_sentiment(twitter_signals)
+        overall = (news_sentiment * NEWS_WEIGHT) + (twitter_sentiment * TWITTER_WEIGHT)
+    else:
+        # No Twitter data, use news only
+        overall = news_sentiment
 
     # Count by sentiment
     counts = {"positive": 0, "negative": 0, "neutral": 0}
@@ -308,16 +315,22 @@ async def aggregate_sentiment(symbol: str, hours: int = 48) -> Dict:
         for s in top_signals
     ]
 
-    return {
+    result = {
         "overall": overall,
         "news": news_sentiment,
-        "twitter": twitter_sentiment,
         "signal_count": len(signals),
         "positive": counts["positive"],
         "negative": counts["negative"],
         "neutral": counts["neutral"],
-        "top_signals": top_signal_data
+        "top_signals": top_signal_data,
+        "has_twitter": has_twitter
     }
+
+    # Only include twitter if we have data
+    if has_twitter:
+        result["twitter"] = twitter_sentiment
+
+    return result
 
 
 async def generate_predictions(
@@ -404,8 +417,9 @@ async def generate_predictions(
         predictions=predictions,
         overall_sentiment=round(overall_sentiment, 2),
         news_sentiment=round(news_sentiment, 2),
-        twitter_sentiment=round(twitter_sentiment, 2),
+        twitter_sentiment=round(twitter_sentiment, 2) if has_twitter else None,
         signal_count=sentiment["signal_count"],
+        has_twitter=has_twitter,
         last_updated=datetime.utcnow().isoformat()
     )
 
