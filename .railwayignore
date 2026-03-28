@@ -3,4 +3,3 @@ data/
 *.py
 *.db
 .env
-node_modules/
