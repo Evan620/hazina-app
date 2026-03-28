@@ -156,6 +156,7 @@ async def generate_prediction_reasoning(
     news_score = sentiment_data.get("news", 0.5)
     twitter_score = sentiment_data.get("twitter", 0.5)
     signal_count = sentiment_data.get("signal_count", 0)
+    top_signals = sentiment_data.get("top_signals", [])
 
     direction_desc = {
         "UP": "expected to rise",
@@ -163,17 +164,26 @@ async def generate_prediction_reasoning(
         "HOLD": "expected to remain stable"
     }.get(direction, "uncertain")
 
+    # Build context from top signals
+    signal_context = ""
+    if top_signals:
+        for i, sig in enumerate(top_signals[:2], 1):
+            snippet = sig.get("snippet", "")[:100]
+            reason = sig.get("reason", "")
+            signal_context += f"\n  {i}. {sig['sentiment'].upper()} ({sig['confidence']:.0%}): {reason}"
+            if snippet:
+                signal_context += f"\n     \"{snippet}\""
+
     prompt = f"""Generate a 1-sentence reasoning for this stock prediction.
 
 Symbol: {symbol}
-Current Price: KES {current_price:.2f}
 Prediction: {direction_desc} in {horizon_days} days
 Overall Sentiment: {sentiment:.0%} ({"Bullish" if sentiment > 0.5 else "Bearish"})
-News Sentiment: {news_score:.0%}, Twitter Sentiment: {twitter_score:.0%}
-Signal Count: {signal_count} recent mentions
+Signal Count: {signal_count}
+Key signals:{signal_context}
 
 Task: Explain WHY this prediction makes sense in 1 concise sentence.
-Focus on: sentiment drivers, key factors, and confidence level.
+Reference the actual news/sentiment factors above.
 
 Return ONLY the reasoning sentence, nothing else."""
 
@@ -188,8 +198,11 @@ Return ONLY the reasoning sentence, nothing else."""
         return response.content[0].text.strip()
 
     except Exception as e:
-        # Fallback reasoning
-        if direction == "UP":
+        # Better fallback using actual signal data
+        if top_signals:
+            sig = top_signals[0]
+            return f"{sig['sentiment'].capitalize()} sentiment ({sig['confidence']:.0%}): {sig['reason']}"
+        elif direction == "UP":
             return f"Positive sentiment ({sentiment:.0%}) from {signal_count} signals suggests upside potential."
         elif direction == "DOWN":
             return f"Negative sentiment ({sentiment:.0%}) from {signal_count} signals indicates downside risk."
@@ -213,7 +226,8 @@ async def aggregate_sentiment(symbol: str, hours: int = 48) -> Dict:
             "signal_count": int,
             "positive": int,
             "negative": int,
-            "neutral": int
+            "neutral": int,
+            "top_signals": List of most significant signals with snippets
         }
     """
     cutoff_time = datetime.utcnow() - timedelta(hours=hours)
@@ -240,7 +254,8 @@ async def aggregate_sentiment(symbol: str, hours: int = 48) -> Dict:
             "signal_count": 0,
             "positive": 0,
             "negative": 0,
-            "neutral": 0
+            "neutral": 0,
+            "top_signals": []
         }
 
     # Separate by source
@@ -280,6 +295,19 @@ async def aggregate_sentiment(symbol: str, hours: int = 48) -> Dict:
     for signal in signals:
         counts[signal.sentiment] += 1
 
+    # Get top 3 most significant signals (by confidence)
+    top_signals = sorted(signals, key=lambda s: s.confidence, reverse=True)[:3]
+    top_signal_data = [
+        {
+            "sentiment": s.sentiment,
+            "confidence": s.confidence,
+            "reason": s.key_reason,
+            "snippet": s.snippet or "",
+            "title": s.article_title or ""
+        }
+        for s in top_signals
+    ]
+
     return {
         "overall": overall,
         "news": news_sentiment,
@@ -287,7 +315,8 @@ async def aggregate_sentiment(symbol: str, hours: int = 48) -> Dict:
         "signal_count": len(signals),
         "positive": counts["positive"],
         "negative": counts["negative"],
-        "neutral": counts["neutral"]
+        "neutral": counts["neutral"],
+        "top_signals": top_signal_data
     }
 
 

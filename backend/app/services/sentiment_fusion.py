@@ -153,6 +153,77 @@ async def analyze_sentiment_finbert(text: str) -> Dict:
         return {"sentiment": "neutral", "confidence": 0.5}
 
 
+def extract_relevant_snippet(text: str, company: str, max_length: int = 200) -> str:
+    """Extract the most relevant sentence(s) mentioning the company."""
+    import re
+
+    # Split into sentences
+    sentences = re.split(r'[.!?]+', text)
+
+    # Find sentences mentioning the company
+    company_names = [company]
+    if company in NSE_SYMBOLS:
+        company_names.append(NSE_SYMBOLS[company])
+
+    relevant = []
+    for sent in sentences:
+        sent = sent.strip()
+        if len(sent) < 20:
+            continue
+        if any(name.lower() in sent.lower() for name in company_names):
+            relevant.append(sent)
+
+    if relevant:
+        # Return the first relevant sentence, truncated
+        snippet = relevant[0]
+        if len(snippet) > max_length:
+            snippet = snippet[:max_length] + "..."
+        return snippet
+
+    # Fallback: first sentence of article
+    first_sent = sentences[0].strip() if sentences else text[:max_length]
+    return (first_sent[:max_length] + "...") if len(first_sent) > max_length else first_sent
+
+
+async def generate_claude_reasoning(
+    title: str,
+    snippet: str,
+    company: str,
+    sentiment: str,
+    confidence: float
+) -> str:
+    """Use Claude to explain WHY this sentiment was detected."""
+    import anthropic
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return f"{sentiment.capitalize()} sentiment detected (confidence: {confidence:.0%})"
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+
+        prompt = f"""Explain in ONE concise sentence why this article has {sentiment} sentiment for {company}.
+
+Article Title: {title}
+Relevant excerpt: {snippet}
+FinBERT confidence: {confidence:.0%}
+
+Focus on the specific words/phrases that drove this sentiment. Return ONLY the explanation sentence."""
+
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=80,
+            temperature=0.5,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return response.content[0].text.strip()
+
+    except Exception as e:
+        logger.error(f"Claude reasoning failed: {e}")
+        return f"{sentiment.capitalize()} sentiment detected (confidence: {confidence:.0%})"
+
+
 async def analyze_article(article: Dict) -> Dict:
     """
     Main entry point: Analyze article using FinBERT.
@@ -167,7 +238,9 @@ async def analyze_article(article: Dict) -> Dict:
             "confidence": 0.87,
             "source": "finbert",
             "article_title": title,
-            "article_url": url
+            "article_url": url,
+            "snippet": "relevant text excerpt",
+            "key_reason": "Claude explanation"
         }
     """
     title = article.get("title", "")
@@ -195,24 +268,24 @@ async def analyze_article(article: Dict) -> Dict:
     # Get sentiment with FinBERT
     sentiment_result = await analyze_sentiment_finbert(full_text)
 
-    # Generate reason
-    sentiment_desc = {
-        "positive": "Positive signals from",
-        "negative": "Negative signals from",
-        "neutral": "Neutral coverage from"
-    }[sentiment_result["sentiment"]]
+    # Extract relevant snippet
+    snippet = extract_relevant_snippet(full_text, company)
 
-    reason = f"{sentiment_desc} {source}"
+    # Generate Claude reasoning for WHY this sentiment
+    reasoning = await generate_claude_reasoning(
+        title, snippet, company, sentiment_result["sentiment"], sentiment_result["confidence"]
+    )
 
     return {
         "company_mentioned": company,
         "sentiment": sentiment_result["sentiment"],
         "confidence": sentiment_result["confidence"],
-        "key_reason": reason,
+        "key_reason": reasoning,
         "relevant_to_investors": True,
         "source": "finbert",
         "article_title": title,
         "article_url": url,
+        "snippet": snippet,
         "created_at": datetime.utcnow().isoformat()
     }
 
@@ -245,6 +318,7 @@ async def save_sentiment_signals(signals: List[Dict]) -> None:
                 article_url=signal_data.get("article_url", ""),
                 article_title=signal_data.get("article_title", ""),
                 source=signal_data.get("source", ""),
+                snippet=signal_data.get("snippet", ""),
                 created_at=created_at
             )
             session.add(signal)

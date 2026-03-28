@@ -124,6 +124,7 @@ async def get_sentiment_feed(
                 "source": s.source,
                 "article_title": s.article_title,
                 "article_url": s.article_url,
+                "snippet": s.snippet or "",
                 "created_at": s.created_at.isoformat()
             }
             for s in signals

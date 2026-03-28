@@ -103,6 +103,7 @@ class SentimentSignal(Base):
     article_url: Mapped[str] = mapped_column(String(500), nullable=True)
     article_title: Mapped[str] = mapped_column(String(500), nullable=True)
     source: Mapped[str] = mapped_column(String(100))  # Business Daily, Reuters, etc.
+    snippet: Mapped[str] = mapped_column(Text, nullable=True)  # Relevant text excerpt
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
