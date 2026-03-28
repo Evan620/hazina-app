@@ -30,6 +30,16 @@ _finbert_model = None
 _finbert_tokenizer = _finbert_device = None
 
 
+async def get_fusion_engine():
+    """Get the FinBERT model (alias for compatibility)."""
+    model, tokenizer, device = get_finbert_model()
+    return {
+        "model": model,
+        "tokenizer": tokenizer,
+        "device": device
+    }
+
+
 def get_finbert_model():
     """Load FinBERT model lazily."""
     global _finbert_model, _finbert_tokenizer, _finbert_device

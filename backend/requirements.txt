@@ -25,6 +25,7 @@ lxml==5.3.0
 
 # NLP & AI
 anthropic==0.40.0
+numpy<2
 transformers==4.44.0
 torch==2.2.0
 
