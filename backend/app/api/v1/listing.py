@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 import json
 
 from app.db.database import get_db, ListingScore
-from app.services.listing_scorer import analyze_company_readiness, analyze_company_readiness_hybrid, NSE_SEGMENT_REQUIREMENTS
+from app.services.listing_scorer import analyze_company_readiness, analyze_company_readiness_ai, NSE_SEGMENT_REQUIREMENTS
 from app.services.verifier import cross_check_company_data, get_demo_verification
 from app.services import document_verifier
 import tempfile
@@ -375,8 +375,8 @@ async def analyze_hybrid(
                 "error": str(e)
             }
 
-    # Run enhanced scoring with document verification
-    result = await analyze_company_readiness_hybrid(
+    # Run AI-powered scoring
+    result = await analyze_company_readiness_ai(
         company_input,
         verification,
         document_verification=document_verification if document_verification else None,

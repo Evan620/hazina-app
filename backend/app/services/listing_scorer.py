@@ -220,7 +220,273 @@ async def get_demo_analysis(company_name: str) -> Optional[Dict]:
 
 
 # ============================================================================
-# HYBRID ANALYSIS - Company Input + Public Verification
+# FULLY AI-POWERED ANALYSIS
+# ============================================================================
+
+FULL_ANALYSIS_PROMPT = """You are a capital markets expert specializing in Nairobi Securities Exchange (NSE) listings, particularly the GEMS, AIMS, and MIMS segments.
+
+Analyze this company's listing readiness comprehensively.
+
+NSE SEGMENT REQUIREMENTS:
+GEMS (Growth Enterprise Market Segment):
+- Issued Share Capital: KES 10 million minimum
+- Minimum Shares in Issue: 100,000
+- Public Shareholders: 50 minimum (15% free float)
+- Trading History: 2 years (1 year profit acceptable with waiver)
+- Profitability: 1 of 2 years profitable
+
+AIMS (Alternative Investment Market Segment):
+- Issued Share Capital: KES 20 million minimum
+- Net Assets: KES 20 million minimum
+- Minimum Shareholders: 100
+- Free Float: 20% to public
+- Trading History: 2 years with profit
+- Profitability: 1 year profit
+
+MIMS (Main Investment Market Segment):
+- Issued Share Capital: KES 50 million minimum
+- Net Assets: KES 100 million minimum
+- Minimum Shareholders: 1,000
+- Free Float: 25% to public
+- Trading History: 5 years profitable track record
+- Profitability: 3 of 5 years profitable
+
+KEY PARTIES (all essential for listing):
+- Lead Transaction Advisor
+- Sponsoring Broker
+- Legal Counsel
+- Reporting Accountant
+
+ESSENTIAL DOCUMENTS:
+- Certificate of Incorporation
+- 2 Years Audited Financials (3 years for MIMS)
+- Draft Prospectus
+- Board Resolution to List
+- Tax Compliance Certificate
+- CRD Clearance Certificate
+
+SCORING GUIDE (0-10 for each dimension):
+- Revenue: Consider revenue stability, growth trajectory, financial consistency, multiple years of data
+- Governance: Board composition (minimum 3 required, 50% independent), audit quality, ownership structure
+- Growth: Market opportunity, competitive position, scalability, sector trends
+- Compliance: Regulatory filings, tax compliance, legal standing, litigation history
+- Market Size: Total addressable market in Kenya, sector potential, competition
+- Timing: Current NSE market conditions (consider recent market sentiment), sector cycle position
+
+CRITICAL: Be conservative. Listing is a high bar. If information is insufficient, give lower scores.
+
+Return ONLY valid JSON in this exact format:
+{
+  "company_health": {
+    "scores": {
+      "revenue": 0-10,
+      "governance": 0-10,
+      "growth": 0-10,
+      "compliance": 0-10,
+      "market_size": 0-10,
+      "timing": 0-10
+    },
+    "overall_score": 0-100,
+    "recommendation": "Ready/Needs Work/Not Ready"
+  },
+  "regulatory_readiness": {
+    "regulatory_score": 0-100,
+    "requirements_met": {"total": 4, "met": X, "details": [...]},
+    "parties": {"total": 4, "appointed": X, "details": [...]},
+    "documents": {"total": 6, "ready": X, "missing": [...]},
+    "timeline_estimate": "X months",
+    "quick_wins": [...]
+  },
+  "breakdowns": {
+    "revenue": {"score": 0-10, "reasoning": "...", "data_source": "..."},
+    "governance": {"score": 0-10, "reasoning": "...", "data_source": "..."},
+    "growth": {"score": 0-10, "reasoning": "...", "data_source": "..."},
+    "compliance": {"score": 0-10, "reasoning": "...", "data_source": "..."},
+    "market_size": {"score": 0-10, "reasoning": "...", "data_source": "..."},
+    "timing": {"score": 0-10, "reasoning": "...", "data_source": "..."}
+  },
+  "combined_recommendation": "2-3 sentence summary of findings"
+}
+"""
+
+
+async def analyze_company_readiness_ai(
+    company_input: Dict,
+    verification_result: Optional[Dict] = None
+) -> Dict:
+    """
+    Fully AI-powered listing readiness analysis.
+    Claude calculates scores, checks regulatory requirements, and generates reasoning.
+    """
+    import json
+
+    # Build company context for Claude
+    context_parts = [
+        f"Company Name: {company_input.get('name', 'Unknown')}",
+        f"Sector: {company_input.get('sector', 'Unknown')}",
+        f"Target Segment: {company_input.get('segment', 'GEMS')}",
+        f"Issued Share Capital: KES {company_input.get('issued_share_capital', 0):,}",
+        f"Shareholders Count: {company_input.get('shareholders_count', 0)}",
+        f"Free Float: {company_input.get('free_float_percent', 0)}%",
+        f"Trading Years: {company_input.get('trading_years', 0)}",
+    ]
+
+    # Revenue history
+    rev_history = company_input.get('revenue_history', {})
+    if rev_history:
+        context_parts.append(f"Revenue History: {rev_history}")
+
+    # Board members
+    board = company_input.get('board_members', [])
+    if board:
+        context_parts.append(f"Board Members: {len(board)} total")
+        independent_count = sum(1 for b in board if isinstance(b, dict) and b.get('independent'))
+        context_parts.append(f"Independent Directors: {independent_count}")
+
+    # Compliance
+    context_parts.append(f"Tax Compliant: {company_input.get('tax_compliant', False)}")
+    if company_input.get('litigation'):
+        context_parts.append(f"Litigation: {company_input['litigation']}")
+
+    # Key parties
+    parties = company_input.get('key_parties', [])
+    if parties:
+        context_parts.append(f"Key Parties Appointed: {', '.join(parties)}")
+
+    # Documents
+    docs = company_input.get('documents_ready', [])
+    if docs:
+        context_parts.append(f"Documents Ready: {', '.join(docs)}")
+
+    # Verification context
+    if verification_result:
+        if verification_result.get('confirmations'):
+            context_parts.append(f"Public Verification: {len(verification_result['confirmations'])} items confirmed")
+        if verification_result.get('discrepancies'):
+            context_parts.append(f"Public Discrepancies: {len(verification_result['discrepancies'])} items found")
+
+    prompt = f"""Analyze this company for NSE {company_input.get('segment', 'GEMS')} listing readiness.
+
+{chr(10).join(context_parts)}
+
+Provide complete analysis as specified in your system prompt."""
+
+    try:
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2500,
+            temperature=0.3,
+            system=FULL_ANALYSIS_PROMPT,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        response_text = response.content[0].text
+
+        # Extract JSON
+        if "```json" in response_text:
+            response_text = response_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in response_text:
+            response_text = response_text.split("```")[1].split("```")[0].strip()
+
+        result = json.loads(response_text)
+
+        # Add metadata
+        result['analyzed_at'] = datetime.utcnow().isoformat()
+        result['analysis_method'] = 'AI-powered (Claude)'
+        result['data_sources'] = ['Company input'] + (verification_result.get('sources_used', []) if verification_result else [])
+
+        # Add raw verification data for reference
+        if verification_result:
+            result['verification'] = verification_result
+
+        return result
+
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse AI response: {e}")
+        # Fallback to formula-based analysis
+        return await analyze_company_readiness_hybrid_fallback(
+            company_input,
+            verification_result or {}
+        )
+    except Exception as e:
+        logger.error(f"AI analysis failed: {e}")
+        return await analyze_company_readiness_hybrid_fallback(
+            company_input,
+            verification_result or {}
+        )
+
+
+async def analyze_company_readiness_hybrid_fallback(
+    company_input: Dict,
+    verification_result: Dict
+) -> Dict:
+    """Fallback formula-based analysis when AI fails."""
+    # Use the original formula-based approach
+    segment = company_input.get("segment", "GEMS")
+
+    scores = {
+        "revenue": score_revenue_from_input(company_input),
+        "governance": score_governance_from_input(company_input),
+        "growth": score_growth_from_input(company_input),
+        "compliance": score_compliance_from_input(company_input),
+        "market_size": estimate_market_size(company_input.get("sector", "")),
+        "timing": await get_timing_score()
+    }
+
+    overall = sum(scores.values()) / len(scores) * 10
+
+    if overall >= 70:
+        recommendation = "Ready"
+    elif overall >= 50:
+        recommendation = "Needs Work"
+    else:
+        recommendation = "Not Ready"
+
+    # Generate breakdowns
+    breakdowns = {}
+    for dim, score in scores.items():
+        reasoning = await generate_ai_dimension_reasoning(
+            dim, score, company_input, verification_result
+        )
+        breakdowns[dim] = {
+            "score": score,
+            "confidence": "Medium",
+            "reasoning": reasoning,
+            "data_source": "Company input only (no external verification)"
+        }
+
+    # Check regulatory readiness
+    regulatory = check_regulatory_readiness(
+        segment=segment,
+        company_data=company_input,
+        parties_appointed=company_input.get("key_parties", []),
+        documents_ready=company_input.get("documents_ready", [])
+    )
+
+    combined_rec = generate_combined_recommendation(
+        regulatory_score=regulatory["regulatory_score"],
+        company_health_score=int(overall),
+        segment=segment
+    )
+
+    return {
+        "company_health": {
+            "scores": scores,
+            "breakdowns": breakdowns,
+            "overall_score": int(overall),
+            "recommendation": recommendation,
+            "segment": segment,
+        },
+        "regulatory_readiness": regulatory,
+        "combined_recommendation": combined_rec,
+        "verification": verification_result,
+        "analysis_method": "Formula-based (AI fallback)",
+        "data_sources": ["Company input"]
+    }
+
+
+# ============================================================================
+# HYBRID ANALYSIS - Company Input + Public Verification (LEGACY)
 # ============================================================================
 
 async def analyze_company_readiness_hybrid(
