@@ -11,6 +11,7 @@ import logging
 from datetime import datetime
 
 from app.services.prediction_scheduler import get_cached_predictions, update_prediction_cache
+from app.services.prediction_engine import get_demo_predictions, get_demo_batch_predictions
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +145,7 @@ async def get_batch_predictions(
             pred_data = {
                 "symbol": p["symbol"],
                 "current_price": p["current_price"],
-                "predictions": p["predictions"],
+                "predictions": p.get("predictions") or [],  # Default to empty list if missing
                 "overall_sentiment": p["overall_sentiment"],
                 "news_sentiment": p.get("news_sentiment", 0.5),
                 "signal_count": p["signal_count"]
@@ -177,7 +178,7 @@ async def get_batch_predictions(
         raise
     except Exception as e:
         logger.error(f"Error in batch predictions: {e}")
-        raise HTTPException(status_code=500, detail=f"Error fetching predictions: {str(e)}")
+        # Return demo data on error instead of raising
         demo_predictions = get_demo_batch_predictions()
 
         return {
@@ -199,7 +200,14 @@ async def get_batch_predictions(
                 }
                 for p in demo_predictions
             ],
-            "count": len(demo_predictions),
+            "pagination": {
+                "page": 1,
+                "page_size": 6,
+                "total": len(demo_predictions),
+                "total_pages": 1,
+                "has_next": False,
+                "has_prev": False
+            },
             "source": "Demo data (API unavailable)",
             "cache_status": "error",
             "error": str(e)
