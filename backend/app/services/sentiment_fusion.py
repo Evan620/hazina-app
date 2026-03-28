@@ -41,7 +41,7 @@ def get_finbert_model():
         logger.info(f"Loading FinBERT model ({FINBERT_MODEL})...")
         _finbert_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         _finbert_tokenizer = AutoTokenizer.from_pretrained(FINBERT_MODEL)
-        _finbert_model = for MlSequenceClassification.from_pretrained(FINBERT_MODEL)
+        _finbert_model = AutoModelForSequenceClassification.from_pretrained(FINBERT_MODEL)
         _finbert_model.to(_finbert_device)
         _finbert_model.eval()
         logger.info(f"FinBERT loaded successfully on {_finbert_device}")
