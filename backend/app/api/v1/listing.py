@@ -395,12 +395,17 @@ async def analyze_hybrid(
         "company": company_name,
         "segment": segment,
         "segment_name": NSE_SEGMENT_REQUIREMENTS.get(segment.upper(), NSE_SEGMENT_REQUIREMENTS["GEMS"])["name"],
-        # Company Health (6 dimensions)
+        # Company Health (6 dimensions) - structure expected by frontend
         "company_health": {
             "overall_score": company_health.get("overall_score", 50),
             "recommendation": company_health.get("recommendation", "Needs Work"),
-            "scores": scores,
-            "breakdowns": breakdowns
+            "dimensions": {
+                dim: {
+                    "score": scores.get(dim, 0),
+                    "breakdown": breakdowns.get(dim, {})
+                }
+                for dim in ["revenue", "governance", "growth", "compliance", "market_size", "timing"]
+            }
         },
         # Regulatory Readiness (NSE-specific)
         "regulatory_readiness": {
