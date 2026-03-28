@@ -384,8 +384,12 @@ async def analyze_hybrid(
     )
 
     # Format response with both company health and regulatory readiness
-    company_health = result["company_health"]
-    regulatory = result["regulatory_readiness"]
+    company_health = result.get("company_health", {})
+    regulatory = result.get("regulatory_readiness", {})
+
+    # Get breakdowns - AI returns them at top level, fallback to empty dict
+    breakdowns = result.get("breakdowns", {})
+    scores = company_health.get("scores", {})
 
     return {
         "company": company_name,
@@ -393,41 +397,36 @@ async def analyze_hybrid(
         "segment_name": NSE_SEGMENT_REQUIREMENTS.get(segment.upper(), NSE_SEGMENT_REQUIREMENTS["GEMS"])["name"],
         # Company Health (6 dimensions)
         "company_health": {
-            "overall_score": company_health["overall_score"],
-            "recommendation": company_health["recommendation"],
-            "dimensions": {
-                dim: {
-                    "score": score,
-                    "breakdown": company_health["breakdowns"][dim]
-                }
-                for dim, score in company_health["scores"].items()
-            }
+            "overall_score": company_health.get("overall_score", 50),
+            "recommendation": company_health.get("recommendation", "Needs Work"),
+            "scores": scores,
+            "breakdowns": breakdowns
         },
         # Regulatory Readiness (NSE-specific)
         "regulatory_readiness": {
-            "overall_score": regulatory["regulatory_score"],
-            "requirements": regulatory["requirements"],
+            "overall_score": regulatory.get("regulatory_score", 0),
+            "requirements": regulatory.get("requirements", {}),
             "key_parties": {
-                "appointed": regulatory["parties"]["appointed"],
-                "total": regulatory["parties"]["total"],
-                "details": regulatory["parties"]["details"]
+                "appointed": regulatory.get("parties", {}).get("appointed", 0),
+                "total": regulatory.get("parties", {}).get("total", 0),
+                "details": regulatory.get("parties", {}).get("details", [])
             },
             "documents": {
-                "ready": regulatory["documents"]["ready"],
-                "total": regulatory["documents"]["total"],
-                "missing": regulatory["documents"]["missing"],
-                "details": regulatory["documents"]["details"]
+                "ready": regulatory.get("documents", {}).get("ready", 0),
+                "total": regulatory.get("documents", {}).get("total", 0),
+                "missing": regulatory.get("documents", {}).get("missing", []),
+                "details": regulatory.get("documents", {}).get("details", [])
             },
-            "timeline_estimate": regulatory["timeline_estimate"],
-            "quick_wins": regulatory["quick_wins"]
+            "timeline_estimate": regulatory.get("timeline_estimate", "6-9 months"),
+            "quick_wins": regulatory.get("quick_wins", [])
         },
         # Combined recommendation
-        "combined_recommendation": result["combined_recommendation"],
+        "combined_recommendation": result.get("combined_recommendation", ""),
         # Verification data
-        "verification": result["verification"],
+        "verification": result.get("verification", {}),
         # NEW: Document verification results
-        "document_verification": document_verification,
-        "manual_verification": manual_verification,
+        "document_verification": document_verification or {},
+        "manual_verification": manual_verification or {},
         # Metadata
         "analyzed_at": datetime.utcnow().isoformat(),
         "note": "Scores based on company input and NSE segment requirements. Not financial advice."
