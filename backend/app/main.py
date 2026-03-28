@@ -28,6 +28,17 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+    # Add snippet column if it doesn't exist (migration)
+    try:
+        from sqlalchemy import text
+        async with engine.begin() as conn:
+            await conn.execute(text(
+                "ALTER TABLE sentiment_signals ADD COLUMN IF NOT EXISTS snippet TEXT"
+            ))
+            logger.info("Added snippet column to sentiment_signals")
+    except Exception as e:
+        logger.debug(f"Snippet column migration: {e}")
+
     # Start prediction cache scheduler
     from app.services.prediction_scheduler import start_scheduler
     start_scheduler()

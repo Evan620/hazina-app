@@ -520,12 +520,32 @@ async def get_timing_score() -> int:
     """
     Get timing score (0-10) based on current market conditions.
 
-    Could integrate with sentiment engine for market-wide sentiment.
-    For now, returns a moderate score.
+    Uses aggregate market sentiment from all companies.
     """
-    # TODO: Integrate with sentiment engine to get market timing
-    # For demo purposes, return moderate score
-    return 6
+    try:
+        from app.services.prediction_engine import aggregate_sentiment
+
+        # Get sentiment for a market proxy (equity index or large cap)
+        # Use SCOM (Safaricom) as NSE market sentiment proxy
+        sentiment_data = await aggregate_sentiment("SCOM", hours=24)
+
+        overall = sentiment_data.get("overall", 0.5)
+        signal_count = sentiment_data.get("signal_count", 0)
+
+        # Convert 0-1 sentiment to 0-10 score
+        # Below 0.3 = bearish (low score), 0.4-0.6 = neutral (mid), 0.7+ = bullish (high)
+        if overall >= 0.65:
+            return 9  # Bullish market - good timing
+        elif overall >= 0.55:
+            return 7  # Moderately bullish
+        elif overall >= 0.45:
+            return 5  # Neutral
+        elif overall >= 0.35:
+            return 3  # Bearish - poor timing
+        else:
+            return 2  # Very bearish - bad timing
+    except Exception:
+        return 5  # Default neutral on error
 
 
 def map_field_to_dimension(field: str) -> Optional[str]:
