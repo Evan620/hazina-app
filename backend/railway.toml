@@ -1,9 +1,3 @@
-[build]
-builder = "NIXPACKS"
-
-[deploy]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-
 [[cron]]
 name = "news-scraper"
 schedule = "0 */6 * * *"
