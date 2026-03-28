@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, and_
 from datetime import datetime, timedelta
 from typing import List, Optional
+import asyncio
 
 from app.db.database import get_db, SentimentSignal
 
@@ -199,4 +200,27 @@ async def get_company_sentiment(
             }
             for s in signals[:5]
         ]
+    }
+
+
+@router.post("/refresh")
+async def refresh_sentiment_signals():
+    """
+    Trigger news scraper to fetch and analyze latest sentiment.
+    Runs in background and returns immediately.
+    """
+    async def run_scraper():
+        try:
+            from app.services.news_scraper import run_news_scraper
+            await run_news_scraper()
+        except Exception as e:
+            print(f"Error running news scraper: {e}")
+
+    # Run in background
+    asyncio.create_task(run_scraper())
+
+    return {
+        "status": "success",
+        "message": "News scraper started in background. Check back in 1-2 minutes.",
+        "note": "This may take 30-60 seconds as we fetch and analyze news articles"
     }
