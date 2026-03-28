@@ -72,6 +72,7 @@ app.add_middleware(
         "http://localhost:3000",
         "https://hazina-app-phi.vercel.app",
         "https://hazina-bzlcky88n-lazarus-projects-8a761c11.vercel.app",
+        "https://hazina-frontend-production.up.railway.app",
     ],  # Frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
