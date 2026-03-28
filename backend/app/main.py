@@ -50,6 +50,17 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.debug(f"has_twitter column migration: {e}")
 
+    # Clear twitter_sentiment for stocks without Twitter data
+    try:
+        from sqlalchemy import text
+        async with engine.begin() as conn:
+            await conn.execute(text(
+                "UPDATE stock_predictions SET twitter_sentiment = NULL WHERE has_twitter = FALSE"
+            ))
+            logger.info("Cleared twitter_sentiment for stocks without Twitter data")
+    except Exception as e:
+        logger.debug(f"Twitter sentiment clear: {e}")
+
     # Start prediction cache scheduler
     from app.services.prediction_scheduler import start_scheduler
     start_scheduler()
