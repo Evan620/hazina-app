@@ -299,10 +299,24 @@ Return JSON only:
             # Boost confidence slightly when we confirm it's financial news
             final_confidence = min(0.85, linguistic["confidence"] + 0.15)
 
+        # Generate a human-readable reason
+        sentiment_desc = {
+            "positive": "Bullish signals from",
+            "negative": "Bearish signals from",
+            "neutral": "Neutral coverage from"
+        }[linguistic["sentiment"]]
+
+        reason = f"{sentiment_desc} {article.get('source', 'news source')}"
+        if context.get("is_financial"):
+            signal_type = context.get("signal_type", "financial")
+            reason += f" regarding {signal_type}"
+
         return {
             "company_mentioned": company,
             "sentiment": linguistic["sentiment"],
             "confidence": round(final_confidence, 3),
+            "key_reason": reason,
+            "relevant_to_investors": context.get("is_financial", False),
             "linguistic_confidence": round(linguistic["confidence"], 3),
             "raw_scores": linguistic.get("raw_scores", {}),
             "source": "afrisenti+claude",
