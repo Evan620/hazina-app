@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import DocumentUpload from "./DocumentUpload";
+import { API_BASE } from "../config/api";
 
 // Types
 interface FormData {
@@ -320,7 +321,7 @@ export default function ListingScannerTab() {
         payload.append("crd_reference", manualVerification.crd_reference);
       }
 
-      const response = await fetch("http://localhost:8000/api/v1/listing/analyze-hybrid", {
+      const response = await fetch(`${API_BASE}/listing/analyze-hybrid`, {
         method: "POST",
         body: payload,
       });

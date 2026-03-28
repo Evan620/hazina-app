@@ -3,6 +3,7 @@ import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContai
 import ListingScannerTab from "./components/ListingScannerTab";
 import ProspectusCheckerTab from "./components/ProspectusCheckerTab";
 import PredictionsTab from "./components/PredictionsTab";
+import { API_BASE } from "./config/api";
 
 // ─── THEME ───
 const C = {
@@ -188,8 +189,8 @@ function DashboardTab() {
     const fetchData = async () => {
       try {
         const [sentimentResponse, pricesResponse] = await Promise.all([
-          fetch('http://localhost:8000/api/v1/sentiment/signals?limit=10'),
-          fetch('http://localhost:8000/api/v1/market/prices')
+          fetch(`${API_BASE}/sentiment/signals?limit=10`),
+          fetch(`${API_BASE}/market/prices`)
         ]);
 
         if (!sentimentResponse.ok) throw new Error('Sentiment API unavailable');

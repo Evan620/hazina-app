@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE } from "../config/api";
 
 // Theme (shared with HazinaDemo)
 const C = {
@@ -188,7 +189,7 @@ export default function PredictionsTab() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-        const response = await fetch(`http://localhost:8000/api/v1/predictions/batch?page=${page}&page_size=6&sort=signal_count`, {
+        const response = await fetch(`${API_BASE}/predictions/batch?page=${page}&page_size=6&sort=signal_count`, {
           signal: controller.signal
         });
         clearTimeout(timeoutId);

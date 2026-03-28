@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { API_BASE } from "../config/api";
 
 const C = {
   bg: "#060B18", card: "#0D1425", cardAlt: "#111D33", border: "#1A2744",
@@ -102,7 +103,7 @@ export default function ProspectusCheckerTab() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("http://localhost:8000/api/v1/prospectus/check", {
+      const response = await fetch(`${API_BASE}/prospectus/check`, {
         method: "POST",
         body: formData,
       });
