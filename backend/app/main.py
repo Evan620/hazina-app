@@ -54,8 +54,13 @@ async def lifespan(app: FastAPI):
     try:
         from sqlalchemy import text
         async with engine.begin() as conn:
+            # First set has_twitter based on whether twitter_sentiment is not the default 0.5
             await conn.execute(text(
-                "UPDATE stock_predictions SET twitter_sentiment = NULL WHERE has_twitter = FALSE"
+                "UPDATE stock_predictions SET has_twitter = TRUE WHERE twitter_sentiment IS NOT NULL AND twitter_sentiment != 0.5"
+            ))
+            # Then clear twitter_sentiment where has_twitter is FALSE
+            await conn.execute(text(
+                "UPDATE stock_predictions SET twitter_sentiment = NULL WHERE has_twitter = FALSE OR (twitter_sentiment = 0.5 AND has_twitter = FALSE)"
             ))
             logger.info("Cleared twitter_sentiment for stocks without Twitter data")
     except Exception as e:
