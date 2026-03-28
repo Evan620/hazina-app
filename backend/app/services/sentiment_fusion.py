@@ -158,7 +158,7 @@ async def analyze_article(article: Dict) -> Dict:
     Main entry point: Analyze article using FinBERT.
 
     Args:
-        article: {title, url, source, content?}
+        article: {title, url, source, content?, company?}
 
     Returns:
         {
@@ -179,7 +179,7 @@ async def analyze_article(article: Dict) -> Dict:
 
     if not full_text or len(full_text) < 50:
         return {
-            "company_mentioned": None,
+            "company_mentioned": article.get("company"),
             "sentiment": "neutral",
             "confidence": 0.0,
             "source": "none",
@@ -189,8 +189,8 @@ async def analyze_article(article: Dict) -> Dict:
             "created_at": datetime.utcnow().isoformat()
         }
 
-    # Detect company
-    company = detect_company_strict(full_text)
+    # Detect company - use pre-detected if available, otherwise detect from text
+    company = article.get("company") or detect_company_strict(full_text)
 
     # Get sentiment with FinBERT
     sentiment_result = await analyze_sentiment_finbert(full_text)
