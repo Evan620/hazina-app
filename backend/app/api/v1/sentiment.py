@@ -224,3 +224,28 @@ async def refresh_sentiment_signals():
         "message": "News scraper started in background. Check back in 1-2 minutes.",
         "note": "This may take 30-60 seconds as we fetch and analyze news articles"
     }
+
+
+@router.post("/refresh-claude")
+async def refresh_sentiment_claude():
+    """
+    Trigger Claude-first news scraper.
+    Uses Claude API for all analysis (sentiment, company detection, financial context).
+    Best for English/Swahili mixed financial news.
+    Runs in background and returns immediately.
+    """
+    async def run_scraper():
+        try:
+            from app.services.sentiment_claude import run_news_scraper_claude
+            await run_news_scraper_claude()
+        except Exception as e:
+            print(f"Error running Claude scraper: {e}")
+
+    # Run in background
+    asyncio.create_task(run_scraper())
+
+    return {
+        "status": "success",
+        "message": "Claude-first news scraper started. Check back in 1-2 minutes.",
+        "note": "Uses Claude API for complete analysis including Swahili/Sheng content"
+    }
