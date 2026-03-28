@@ -1,5 +1,0 @@
-backend/
-data/
-*.py
-*.db
-.env
