@@ -1180,20 +1180,24 @@ export default function ListingScannerTab() {
 
   // Step 5: Enhanced Results
   if (step === 5 && result) {
-    const companyHealth = result.company_health;
-    const regulatory = result.regulatory_readiness;
+    const companyHealth = result.company_health || {};
+    const regulatory = result.regulatory_readiness || {};
+
+    // Safely access nested properties with defaults
+    const dimensions = companyHealth.dimensions || {};
+    const getScore = (key: string) => dimensions[key]?.score || 0;
 
     const radarData = [
-      { dimension: "Revenue", score: companyHealth.dimensions.revenue.score, fullMark: 10 },
-      { dimension: "Governance", score: companyHealth.dimensions.governance.score, fullMark: 10 },
-      { dimension: "Growth", score: companyHealth.dimensions.growth.score, fullMark: 10 },
-      { dimension: "Compliance", score: companyHealth.dimensions.compliance.score, fullMark: 10 },
-      { dimension: "Market", score: companyHealth.dimensions.market_size.score, fullMark: 10 },
-      { dimension: "Timing", score: companyHealth.dimensions.timing.score, fullMark: 10 },
+      { dimension: "Revenue", score: getScore("revenue"), fullMark: 10 },
+      { dimension: "Governance", score: getScore("governance"), fullMark: 10 },
+      { dimension: "Growth", score: getScore("growth"), fullMark: 10 },
+      { dimension: "Compliance", score: getScore("compliance"), fullMark: 10 },
+      { dimension: "Market", score: getScore("market_size"), fullMark: 10 },
+      { dimension: "Timing", score: getScore("timing"), fullMark: 10 },
     ];
 
-    const companyHealthColor = getScoreColor(companyHealth.overall_score);
-    const regulatoryColor = getScoreColor(regulatory.overall_score);
+    const companyHealthColor = getScoreColor(companyHealth.overall_score || 50);
+    const regulatoryColor = getScoreColor(regulatory.overall_score || 0);
 
     return (
       <div>
@@ -1317,8 +1321,8 @@ export default function ListingScannerTab() {
 
             {/* Requirements Status */}
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 6 }}>NSE Requirements ({regulatory.requirements.met}/{regulatory.requirements.total} met)</div>
-              {regulatory.requirements.results.map((req: any, i: number) => (
+              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 6 }}>NSE Requirements ({regulatory.requirements?.met || 0}/{regulatory.requirements?.total || 4} met)</div>
+              {(regulatory.requirements?.results || []).map((req: any, i: number) => (
                 <div key={i} style={{ fontSize: 11, padding: "4px 0", color: req.status === "met" ? C.accent : req.status === "waiver_possible" ? C.gold : C.red }}>
                   {req.display}
                 </div>
@@ -1327,10 +1331,10 @@ export default function ListingScannerTab() {
 
             {/* Key Parties */}
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 6 }}>Key Parties ({regulatory.key_parties.appointed}/{regulatory.key_parties.total})</div>
-              {regulatory.key_parties.details.map((party: any, i: number) => (
+              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 6 }}>Key Parties ({regulatory.key_parties?.appointed || 0}/{regulatory.key_parties?.total || 4})</div>
+              {(regulatory.key_parties?.details || []).map((party: any, i: number) => (
                 <div key={i} style={{ fontSize: 11, padding: "3px 0", color: party.appointed ? C.accent : C.textMuted }}>
-                  {party.appointed ? "✓" : "○"} {party.name}
+                  {party.appointed ? "✓" : "○"} {party.name || party}
                 </div>
               ))}
             </div>
@@ -1351,7 +1355,7 @@ export default function ListingScannerTab() {
             <Card>
               <div style={{ fontSize: 11, color: C.accent, fontWeight: 700, marginBottom: 8 }}>Quick Wins</div>
               {regulatory.quick_wins.map((win: string, i: number) => (
-                <div key={i} style={{ fontSize: 11, color: C.textDim, padding: "4px 0", borderBottom: i < regulatory.quick_wins.length - 1 ? `1px solid ${C.border}20` : "none" }}>
+                <div key={i} style={{ fontSize: 11, color: C.textDim, padding: "4px 0", borderBottom: i < (regulatory.quick_wins?.length || 0) - 1 ? `1px solid ${C.border}20` : "none" }}>
                   • {win}
                 </div>
               ))}

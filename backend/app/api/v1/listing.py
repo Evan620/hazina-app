@@ -21,6 +21,64 @@ import os
 router = APIRouter()
 
 
+def _normalize_parties_details(details: list) -> list:
+    """Normalize parties details to frontend expected format.
+
+    Frontend expects: [{name: str, appointed: bool}]
+    AI may return: ["Name: Not Appointed", ...] or already normalized
+    """
+    if not details:
+        return []
+
+    # If already in correct format (list of dicts with 'name' key)
+    if isinstance(details[0], dict):
+        return details
+
+    # Convert from string format "Name: Status" to object format
+    normalized = []
+    for detail in details:
+        if isinstance(detail, str):
+            # Parse "Lead Transaction Advisor: Not Appointed"
+            if ": " in detail:
+                parts = detail.split(": ", 1)
+                name = parts[0]
+                status = parts[1].lower() if len(parts) > 1 else ""
+                appointed = "appointed" in status or "✓" in status or "yes" in status
+                normalized.append({"name": name, "appointed": appointed})
+            else:
+                # Just a name, assume not appointed
+                normalized.append({"name": detail, "appointed": False})
+        else:
+            normalized.append({"name": str(detail), "appointed": False})
+
+    return normalized
+
+
+def _normalize_requirements(requirements: dict) -> dict:
+    """Normalize requirements to frontend expected format.
+
+    Frontend expects: {total: int, met: int, results: [{display: str, status: str}]}
+    AI may return: {} or various formats
+    """
+    if not requirements:
+        return {"total": 4, "met": 0, "results": []}
+
+    # If already in correct format (has 'results' key)
+    if "results" in requirements:
+        return requirements
+
+    # If has 'details' instead of 'results', convert it
+    if "details" in requirements:
+        return {
+            "total": requirements.get("total", len(requirements["details"])),
+            "met": requirements.get("met", 0),
+            "results": requirements["details"]
+        }
+
+    # Empty requirements, return defaults
+    return {"total": 4, "met": 0, "results": []}
+
+
 class ListingRequest(BaseModel):
     company_name: str
     symbol: Optional[str] = None
@@ -407,18 +465,18 @@ async def analyze_hybrid(
                 for dim in ["revenue", "governance", "growth", "compliance", "market_size", "timing"]
             }
         },
-        # Regulatory Readiness (NSE-specific)
+        # Regulatory Readiness (NSE-specific) - normalize to frontend expected format
         "regulatory_readiness": {
-            "overall_score": regulatory.get("regulatory_score", 0),
-            "requirements": regulatory.get("requirements", {}),
+            "overall_score": regulatory.get("regulatory_score", regulatory.get("overall_score", 0)),
+            "requirements": _normalize_requirements(regulatory.get("requirements", regulatory.get("requirements_met", {}))),
             "key_parties": {
-                "appointed": regulatory.get("parties", {}).get("appointed", 0),
-                "total": regulatory.get("parties", {}).get("total", 0),
-                "details": regulatory.get("parties", {}).get("details", [])
+                "appointed": regulatory.get("parties", regulatory.get("key_parties", {})).get("appointed", 0),
+                "total": regulatory.get("parties", regulatory.get("key_parties", {})).get("total", 4),
+                "details": _normalize_parties_details(regulatory.get("parties", regulatory.get("key_parties", {})).get("details", []))
             },
             "documents": {
                 "ready": regulatory.get("documents", {}).get("ready", 0),
-                "total": regulatory.get("documents", {}).get("total", 0),
+                "total": regulatory.get("documents", {}).get("total", 6),
                 "missing": regulatory.get("documents", {}).get("missing", []),
                 "details": regulatory.get("documents", {}).get("details", [])
             },
