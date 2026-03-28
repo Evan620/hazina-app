@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 import asyncio
 
-from app.db.database import get_db, SentimentSignal
+from app.db.database import get_db, SentimentSignal, async_session_maker
 
 router = APIRouter()
 
@@ -248,4 +248,28 @@ async def refresh_sentiment_claude():
         "status": "success",
         "message": "Claude-first news scraper started. Check back in 1-2 minutes.",
         "note": "Uses Claude API for complete analysis including Swahili/Sheng content"
+    }
+
+
+@router.post("/clear-old")
+async def clear_old_signals():
+    """
+    Clear old sentiment signals (older than 6 hours).
+    Use this to remove stale neutral signals and improve prediction quality.
+    """
+    from datetime import timedelta
+    from app.db.database import SentimentSignal
+
+    cutoff = datetime.utcnow() - timedelta(hours=6)
+
+    async with async_session_maker() as session:
+        from sqlalchemy import delete
+        stmt = delete(SentimentSignal).where(SentimentSignal.created_at < cutoff)
+        result = await session.execute(stmt)
+        await session.commit()
+
+    return {
+        "status": "success",
+        "deleted": result.rowcount,
+        "message": f"Cleared {result.rowcount} old signals"
     }
