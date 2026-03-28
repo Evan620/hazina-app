@@ -312,7 +312,9 @@ Return ONLY valid JSON in this exact format:
 
 async def analyze_company_readiness_ai(
     company_input: Dict,
-    verification_result: Optional[Dict] = None
+    verification_result: Optional[Dict] = None,
+    document_verification: Optional[Dict] = None,
+    manual_verification: Optional[Dict] = None
 ) -> Dict:
     """
     Fully AI-powered listing readiness analysis.
@@ -358,6 +360,16 @@ async def analyze_company_readiness_ai(
     if docs:
         context_parts.append(f"Documents Ready: {', '.join(docs)}")
 
+    # Document verification results
+    if document_verification:
+        verified_docs = [k for k, v in document_verification.items() if v.get('verification_score', 0) > 0.5]
+        if verified_docs:
+            context_parts.append(f"Document Verification: {len(verified_docs)} documents verified ({', '.join(verified_docs)})")
+
+    # Manual verification
+    if manual_verification and manual_verification.get('overall_score', 0) > 0:
+        context_parts.append(f"Manual Verification: Codes verified successfully")
+
     # Verification context
     if verification_result:
         if verification_result.get('confirmations'):
@@ -395,9 +407,10 @@ Provide complete analysis as specified in your system prompt."""
         result['analysis_method'] = 'AI-powered (Claude)'
         result['data_sources'] = ['Company input'] + (verification_result.get('sources_used', []) if verification_result else [])
 
-        # Add raw verification data for reference
-        if verification_result:
-            result['verification'] = verification_result
+        # Add verification data for reference
+        result['verification'] = verification_result or {}
+        result['document_verification'] = document_verification or {}
+        result['manual_verification'] = manual_verification or {}
 
         return result
 
